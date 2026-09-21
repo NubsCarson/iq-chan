@@ -12,32 +12,29 @@ export type Row = Post & Record<string, unknown>;
  *  (dbRootId, tableName) paths. */
 export async function gwFetch(path: string, init: RequestInit = {}): Promise<Response> {
     const primary = getGatewayUrl();
-    const url = new URL(path, "https://gateway.invalid");
-    const network = url.searchParams.get("network");
-    const freshSolanaRows = (!network || network === "solana") &&
-        /^\/table\/[^/]+\/rows$/.test(url.pathname) && url.searchParams.get("fresh") === "true";
-    const reqInit: RequestInit = { cache: "no-store", ...init };
     const tried = new Set<string>();
+    const reqInit: RequestInit = { cache: "no-store", ...init };
 
-    for (const configured of [primary, ...getFallbacks()]) {
-        const gateway = configured.replace(/\/$/, "");
-        // Solana Internet does not serve EVM requests, including custom primaries.
-        if (gateway === SOLANA_GATEWAY && network && network !== "solana") continue;
-        if (tried.has(gateway)) continue;
-        tried.add(gateway);
+    tried.add(primary);
+    try {
+        const res = await fetch(`${primary}${path}`, reqInit);
+        if (res.ok || res.status === 404 || res.status === 304) return res;
+    } catch {}
+
+    // The restored Solana Internet deployment only serves Solana. Use the
+    // request's network, including server-side reads, rather than browser state.
+    const network = new URL(path, "https://gateway.invalid").searchParams.get("network");
+    for (const fallback of getFallbacks()) {
+        if (fallback.replace(/\/$/, "") === SOLANA_GATEWAY && network && network !== "solana") continue;
+        if (tried.has(fallback)) continue;
+        tried.add(fallback);
         try {
-            const res = await fetch(`${gateway}${path}`, reqInit);
-            if (freshSolanaRows) {
-                // Older gateways return stale disk data with HTTP 200 after
-                // a failed fresh read. A 304 also cannot prove freshness there.
-                if (res.status === 304) continue;
-                if (res.ok && (await res.clone().json()).cached === true) continue;
-            }
+            const res = await fetch(`${fallback}${path}`, reqInit);
             if (res.ok || res.status === 404 || res.status === 304) return res;
         } catch {}
     }
 
-    throw new Error(freshSolanaRows ? "no gateway could provide fresh rows" : "all gateways unreachable");
+    throw new Error("all gateways unreachable");
 }
 
 // Path-keyed ETag + last-body cache. Lets polling loops (thread-page BACKOFF)
@@ -52,10 +49,9 @@ async function fetchTableRows(
 ): Promise<{ rows: Row[]; nextCursor?: string }> {
     let path = `/table/${tablePda}/rows?limit=${limit}`;
     if (before) path += `&before=${before}`;
-    else path += "&fresh=true";
 
     const cached = rowsEtagCache.get(path);
-    const headers = before && cached ? { "If-None-Match": cached.etag } : undefined;
+    const headers = cached ? { "If-None-Match": cached.etag } : undefined;
 
     if (isDev) console.log("[gateway] rows →", tablePda.slice(0, 8), limit, cached ? "(etag)" : "");
     const res = await gwFetch(path, headers ? { headers } : {});

@@ -107,7 +107,7 @@ test("Solana token chart renders on a Technology post, not only Tranches", async
         baseToken: { address: mint, symbol: "JUP" },
         pairAddress: pair,
         liquidity: { usd: 100 },
-    }])) as unknown as typeof fetch;
+    }])) as typeof fetch;
     const { createRoot } = await import("react-dom/client");
     const root = createRoot(document.getElementById("root")!);
     try {
