@@ -91,7 +91,9 @@ export async function fetchAllTableRows(
     return allRows;
 }
 
-/** Notify gateway about a new tx so it caches it and invalidates stale rows.
+/** Notify each configured Solana gateway after a confirmed write so fallback
+ * caches also receive the row. Each request retains notifyGateway's timeout
+ * and best-effort semantics; a failed gateway must not fail the submission.
  * `signer` lets the gateway stamp __signer onto the injected row, so clients
  * that render the cache immediately have the fee payer's wallet available. */
 export async function notifyPost(
@@ -100,7 +102,10 @@ export async function notifyPost(
     row?: Record<string, unknown>,
     signer?: string,
 ): Promise<void> {
-    await notifyGateway(`${getGatewayUrl()}/table/${tablePda}/notify`, { txSignature, row, signer });
+    const gateways = new Set([getGatewayUrl(), ...getFallbacks()].map(url => url.replace(/\/+$/, "")));
+    await Promise.all([...gateways].map(url =>
+        notifyGateway(`${url}/table/${tablePda}/notify`, { txSignature, row, signer }),
+    ));
 }
 
 /** Fetch DbRoot data (tableSeeds, globalTableSeeds, creator, tableCreators, tableNames) from gateway. */
