@@ -166,17 +166,21 @@ export default function PostForm({
                         </td>
                     </tr>
                     <tr data-type="File">
-                        <td>Attachment URL</td>
+                        <td>Attachment</td>
                         <td>
                             <input
                                 name="img"
                                 disabled={loading}
-                                type="url"
+                                type="text"
                                 tabIndex={8}
                                 value={img}
                                 onChange={(e) => setImg(e.target.value)}
-                                placeholder="https://..."
+                                placeholder="Media URL, inscription link, or transaction ID"
                             />
+                            <div style={{fontSize: 11}}>
+                                <a href="https://iqlabs.dev/?menu=codein" target="_blank" rel="noopener noreferrer">Inscribe media on Solana</a>
+                                {" — upload there, then paste its share link here. Existing media URLs also work."}
+                            </div>
                         </td>
                     </tr>
                     {img.trim() && (

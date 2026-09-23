@@ -8,6 +8,7 @@ import { resolveNetwork } from "../lib/chains/resolve";
 import { shareUrl } from "../lib/share";
 import ShareLink from "./share-link";
 import Attachment from "./attachment";
+import { inscriptionMediaPath } from "../lib/attachment";
 import TokenCard from "./token-card";
 import SolanaTokenCard from "./solana-token-card";
 
@@ -69,6 +70,7 @@ export default function Post({
     // Drop any non-http(s) image url instead of linking it: the field is
     // attacker-controlled on-chain data and lands in an href below.
     const safeImg = safePostUrl(img);
+    const attachment = img && inscriptionMediaPath(img, net) ? img.trim() : safeImg;
 
     let fileName = "";
     if (safeImg) {
@@ -76,12 +78,12 @@ export default function Post({
         catch { fileName = "image"; }
     }
 
-    const fileBlock = safeImg ? (
+    const fileBlock = attachment ? (
         <div className="file" id={`f${txSig}`}>
             <div className="fileText" id={`fT${txSig}`}>
-                File: <a href={safeImg} target="_blank" rel="noopener noreferrer">{fileName}</a>
+                File: {safeImg ? <a href={safeImg} target="_blank" rel="noopener noreferrer">{fileName}</a> : <span title={attachment}>On-chain media</span>}
             </div>
-            <Attachment key={safeImg} url={safeImg} name={fileName} isOp={isOp} />
+            <Attachment key={attachment} url={attachment} name={fileName} isOp={isOp} />
         </div>
     ) : null;
 
