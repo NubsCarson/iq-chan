@@ -12,8 +12,11 @@ export function inscriptionMediaPath(value: string, network: NetworkDescriptor):
     if (/^https?:\/\//i.test(id)) {
         let url: URL;
         try { url = new URL(id); } catch { return null; }
-        if (url.protocol !== "https:" || url.username || url.password) return null;
-        if (url.origin === "https://iqlabs.dev" && url.searchParams.get("menu") === "codein") {
+        const uploader = new URL(process.env.NEXT_PUBLIC_INSCRIPTION_URL || "https://iqlabs.dev/");
+        const configuredUploader = url.origin === uploader.origin;
+        const localUploader = configuredUploader && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+        if ((url.protocol !== "https:" && !(url.protocol === "http:" && localUploader)) || url.username || url.password) return null;
+        if ((url.origin === "https://iqlabs.dev" || configuredUploader) && url.searchParams.get("menu") === "codein") {
             id = url.searchParams.get("post") || "";
             selected = NETWORKS.solana;
         } else {

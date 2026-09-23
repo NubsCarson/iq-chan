@@ -1,6 +1,6 @@
 "use client";
 
-import Attachment from "./attachment";
+import AttachmentField from "./attachment-field";
 
 import { useState, useRef } from "react";
 import { useChainWallet } from "../lib/chains/context";
@@ -166,40 +166,11 @@ export default function PostForm({
                         </td>
                     </tr>
                     <tr data-type="File">
-                        <td>Attachment</td>
+                        <td>Attachment URL</td>
                         <td>
-                            <input
-                                name="img"
-                                disabled={loading}
-                                type="text"
-                                tabIndex={8}
-                                value={img}
-                                onChange={(e) => setImg(e.target.value)}
-                                placeholder="Media URL, inscription link, or transaction ID"
-                            />
-                            <div style={{fontSize: 11}}>
-                                <a href="https://iqlabs.dev/?menu=codein" target="_blank" rel="noopener noreferrer">Inscribe media on Solana</a>
-                                {" — upload there, then paste its share link here. Existing media URLs also work."}
-                            </div>
+                            <AttachmentField value={img} onChange={setImg} disabled={loading} />
                         </td>
                     </tr>
-                    {img.trim() && (
-                        <tr>
-                            <td></td>
-                            <td>
-                                <Attachment key={img.trim()} url={img.trim()} name="Attachment preview" />
-                                {" "}
-                                <button
-                                    type="button"
-                                    disabled={loading}
-                                    onClick={() => setImg("")}
-                                    style={{ color: "#d00", fontSize: 11, background: "none", border: "none", cursor: "pointer" }}
-                                >
-                                    [Remove]
-                                </button>
-                            </td>
-                        </tr>
-                    )}
                     <tr className="rules">
                         <td colSpan={2}>
                             <ul>

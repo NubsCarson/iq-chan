@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChainWallet } from "../lib/chains/context";
 import PostingOverlay from "./posting-overlay";
+import AttachmentField from "./attachment-field";
 
 export default function QuickReply({
     threadSig,
@@ -211,15 +212,7 @@ export default function QuickReply({
                     Your reply is permanently stored on the blockchain and cannot be deleted.
                 </div>
                 <div style={{ marginBottom: 3 }}>
-                    <input
-                        name="img"
-                        disabled={loading}
-                        type="url"
-                        placeholder="Attachment URL"
-                        value={img}
-                        onChange={(e) => setImg(e.target.value)}
-                        style={{ width: 200, fontSize: 12, padding: "1px 3px", border: "1px solid #aaa", outline: "none" }}
-                    />
+                    <AttachmentField value={img} onChange={setImg} disabled={loading} />
                     <input
                         type="submit"
                         value={!address ? "Connect wallet" : loading ? (statusText || "Posting...") : "Post"}
