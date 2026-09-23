@@ -7,6 +7,60 @@ import PostForm from "../src/components/post-form";
 import QuickReply from "../src/components/quick-reply";
 
 for (const kind of ["standard", "quick"] as const) {
+    for (const finish of ["complete", "cancel", "blocked"] as const) {
+        test(`${kind} waits for its attachment before posting (${finish})`, async t => {
+            const dom = new JSDOM('<div id="root"></div>', { url: "https://hoodchan.xyz/" });
+            const popup = new JSDOM('', { url: "https://iqlabs.dev/" });
+            Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
+            const { createRoot } = await import("react-dom/client");
+            const root = createRoot(document.getElementById("root")!);
+            t.after(async () => { await act(async () => root.unmount()); dom.window.close(); popup.window.close(); });
+            let opened = "";
+            window.open = ((url: string) => { opened = url; return finish === "blocked" ? null : popup.window; }) as never;
+            window.focus = () => {};
+            popup.window.postMessage = () => {};
+            const posts: Array<{ com: string; img?: string }> = [];
+            const props = { loading: false, onSubmit: async (data: { com: string; img?: string }) => { posts.push(data); } };
+            await act(async () => root.render(
+                <ChainWalletContext.Provider value={{ address: "0x" + "a".repeat(40), connecting: false, family: "evm", connect() {}, disconnect() {} }}>
+                    {kind === "standard" ? <PostForm {...props} mode="thread" /> : <QuickReply {...props} threadSig="op" initialQuote="op" onClose={() => {}} />}
+                </ChainWalletContext.Provider>
+            ));
+            const comment = document.querySelector("textarea")!;
+            await act(async () => {
+                Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, "value")!.set!.call(comment, "draft stays here");
+                comment.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+            });
+            const click = async (label: string) => act(async () => {
+                [...document.querySelectorAll("button")].find(button => button.textContent === label)!.click();
+            });
+            const submit = async () => act(async () => {
+                document.querySelector("form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+            });
+            await click("Inscribe attachment");
+            const submitButton = document.querySelector<HTMLInputElement>('input[type="submit"]')!;
+            if (finish !== "blocked") {
+                assert.equal(submitButton.disabled, true);
+                await submit(); // Guard programmatic submits as well as the button.
+                assert.equal(posts.length, 0);
+                assert.equal(comment.value, "draft stays here");
+                if (finish === "cancel") await click("Cancel attachment");
+                await act(async () => window.dispatchEvent(new dom.window.MessageEvent("message", {
+                    origin: "https://iqlabs.dev", source: popup.window as unknown as Window,
+                    data: { type: "iq:attachment-complete", requestId: new URL(opened).searchParams.get("attachmentRequest"), network: "solana", signature: "2".repeat(88) },
+                })));
+                assert.equal(posts.length, 0, "Returning media must not automatically post");
+            }
+            assert.equal(submitButton.disabled, false);
+            await submit();
+            assert.equal(posts.length, 1);
+            assert.equal(posts[0].com, "draft stays here");
+            assert.equal(posts[0].img, finish === "complete" ? "https://iqlabs.dev/?menu=codein&post=" + "2".repeat(88) : undefined);
+        });
+    }
+}
+
+for (const kind of ["standard", "quick"] as const) {
     test(`${kind} posting preserves drafts on failure, prevents duplicate submits, and clears only on success`, async (t) => {
         const dom = new JSDOM('<div id="root"></div>', { url: "https://hoodchan.xyz/" });
         Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });

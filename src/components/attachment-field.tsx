@@ -1,23 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Attachment from "./attachment";
 import { inscriptionMediaPath } from "../lib/attachment";
 import { NETWORKS } from "../lib/chains/networks";
 
 const UPLOADER = process.env.NEXT_PUBLIC_INSCRIPTION_URL || "https://iqlabs.dev/";
 
-export default function AttachmentField({ value, onChange, disabled }: {
+export default function AttachmentField({ value, onChange, disabled, onPendingChange }: {
     value: string;
     onChange: (value: string) => void;
     disabled: boolean;
+    onPendingChange: (pending: boolean) => void;
 }) {
     const [upload, setUpload] = useState<{ popup: Window; id: string; initialValue: string } | null>(null);
     const [status, setStatus] = useState("");
+    const changeUpload = useCallback((next: typeof upload) => {
+        setUpload(next);
+        onPendingChange(next !== null);
+    }, [onPendingChange]);
+    useEffect(() => () => onPendingChange(false), [onPendingChange]);
 
     useEffect(() => {
         if (!upload) return;
-        if (disabled || value !== upload.initialValue) { setUpload(null); return; }
+        if (disabled || value !== upload.initialValue) { changeUpload(null); return; }
         const { popup, id } = upload;
         let completed = false;
         const origin = new URL(UPLOADER).origin;
@@ -39,14 +45,14 @@ export default function AttachmentField({ value, onChange, disabled }: {
             completed = true;
             onChange(share.href);
             popup.postMessage({ type: "iq:attachment-accepted", requestId: id }, origin);
-            setUpload(null);
+            changeUpload(null);
             setStatus("Attachment added. Review your post, then press Post when ready.");
             window.focus();
         }
         window.addEventListener("message", receive);
         const closed = window.setInterval(() => {
             if (upload.popup.closed) {
-                setUpload(null);
+                changeUpload(null);
                 setStatus("Upload window closed. Your post draft is saved.");
             }
         }, 500);
@@ -55,7 +61,7 @@ export default function AttachmentField({ value, onChange, disabled }: {
             window.clearInterval(closed);
             window.removeEventListener("message", receive);
         };
-    }, [upload, disabled, value, onChange]);
+    }, [upload, disabled, value, onChange, changeUpload]);
 
     function openUploader() {
         if (upload) { upload.popup.focus(); return; }
@@ -68,19 +74,19 @@ export default function AttachmentField({ value, onChange, disabled }: {
         // credentials or draft text are sent to the uploader.
         const popup = window.open(url.href, "iq-attachment-" + id, "popup,width=1000,height=850");
         if (!popup) { setStatus("Allow the IQ Labs popup, then try again. Your draft is saved."); return; }
-        setUpload({ popup, id, initialValue: value });
+        changeUpload({ popup, id, initialValue: value });
         setStatus("Opening IQ Labs uploader…");
     }
 
     return <div>
         <input name="img" disabled={disabled} type="url" tabIndex={8} value={value}
-            onChange={e => { setUpload(null); setStatus(""); onChange(e.target.value); }}
+            onChange={e => { changeUpload(null); setStatus(""); onChange(e.target.value); }}
             placeholder="https://..." />
         <button type="button" onClick={openUploader} disabled={disabled}>
             {upload ? "Return to uploader" : "Inscribe attachment"}
         </button>
         {upload && <button type="button" onClick={() => {
-            setUpload(null);
+            changeUpload(null);
             setStatus("Automatic attachment cancelled. The upload window is still open; your draft is saved.");
         }}>Cancel attachment</button>}
         <div style={{ fontSize: 11 }}>Use IQ Labs’ Solana uploader. Completed media is added here automatically.</div>
@@ -88,7 +94,7 @@ export default function AttachmentField({ value, onChange, disabled }: {
 
         {value.trim() && <div>
             <Attachment key={value.trim()} url={value.trim()} name="Attachment preview" />
-            <button type="button" disabled={disabled} onClick={() => { setUpload(null); setStatus(""); onChange(""); }}>[Remove]</button>
+            <button type="button" disabled={disabled} onClick={() => { changeUpload(null); setStatus(""); onChange(""); }}>[Remove]</button>
         </div>}
     </div>;
 }

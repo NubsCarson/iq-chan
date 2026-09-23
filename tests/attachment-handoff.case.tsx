@@ -11,7 +11,7 @@ async function mount(blocked=false){
  let opened='';let changes=0;const sent:any[]=[];
  dom.window.open=((url:string)=>{opened=url;return blocked?null:other.window;}) as any;
  dom.window.focus=()=>{};other.window.postMessage=((...args:any[])=>sent.push(args)) as any;
- function Form(){const [value,setValue]=useState('');return <AttachmentField value={value} onChange={v=>{changes++;setValue(v);}} disabled={false}/>;}
+ function Form(){const [value,setValue]=useState('');return <AttachmentField value={value} onChange={v=>{changes++;setValue(v);}} disabled={false} onPendingChange={()=>{}}/>;}
  const {createRoot}=await import('react-dom/client');const root=createRoot(document.getElementById('root')!);
  await act(async()=>root.render(<Form/>));
  const click=async(text:string)=>act(async()=>{[...document.querySelectorAll('button')].find(b=>b.textContent===text)!.click();});
