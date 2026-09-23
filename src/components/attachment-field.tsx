@@ -20,6 +20,7 @@ export default function AttachmentField({ value, onChange, disabled, onPendingCh
         onPendingChange(next !== null);
     }, [onPendingChange]);
     useEffect(() => () => onPendingChange(false), [onPendingChange]);
+    useEffect(() => { if (!value) setStatus(""); }, [value]);
 
     useEffect(() => {
         if (!upload) return;
@@ -79,17 +80,14 @@ export default function AttachmentField({ value, onChange, disabled, onPendingCh
     }
 
     return <div>
-        <input name="img" disabled={disabled} type="url" tabIndex={8} value={value}
-            onChange={e => { changeUpload(null); setStatus(""); onChange(e.target.value); }}
-            placeholder="https://..." />
-        <button type="button" onClick={openUploader} disabled={disabled}>
-            {upload ? "Return to uploader" : "Inscribe attachment"}
+        <button type="button" onClick={openUploader} disabled={disabled} tabIndex={8}>
+            {upload ? "Return to uploader" : value ? "Replace inscription" : "Inscribe attachment"}
         </button>
         {upload && <button type="button" onClick={() => {
             changeUpload(null);
             setStatus("Automatic attachment cancelled. The upload window is still open; your draft is saved.");
         }}>Cancel attachment</button>}
-        <div style={{ fontSize: 11 }}>Use IQ Labs’ Solana uploader. Completed media is added here automatically.</div>
+        {!value && !status && <div style={{ fontSize: 11 }}>Inscribe with IQ Labs to attach media.</div>}
         {status && <div role="status" style={{ fontSize: 12 }}>{status}</div>}
 
         {value.trim() && <div>

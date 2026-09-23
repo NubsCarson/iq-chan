@@ -167,7 +167,7 @@ export default function PostForm({
                         </td>
                     </tr>
                     <tr data-type="File">
-                        <td>Attachment URL</td>
+                        <td>Attachment</td>
                         <td>
                             <AttachmentField value={img} onChange={setImg} disabled={loading} onPendingChange={setAttachmentPending} />
                         </td>

@@ -27,6 +27,7 @@ for (const kind of ["standard", "quick"] as const) {
                 </ChainWalletContext.Provider>
             ));
             const comment = document.querySelector("textarea")!;
+            assert.equal(document.querySelector('input[type="url"]'), null);
             await act(async () => {
                 Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, "value")!.set!.call(comment, "draft stays here");
                 comment.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
@@ -66,7 +67,12 @@ for (const kind of ["standard", "quick"] as const) {
         Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
         const { createRoot } = await import("react-dom/client");
         const root = createRoot(document.getElementById("root")!);
-        t.after(async () => { await act(async () => root.unmount()); dom.window.close(); });
+        const popup = new JSDOM('', { url: "https://iqlabs.dev/" });
+        let opened = "";
+        window.open = ((url: string) => { opened = url; return popup.window; }) as never;
+        window.focus = () => {};
+        popup.window.postMessage = () => {};
+        t.after(async () => { await act(async () => root.unmount()); dom.window.close(); popup.window.close(); });
         let calls = 0, closes = 0, dismisses = 0;
         let resolve!: () => void, reject!: (e: Error) => void;
         let submitted: unknown;
@@ -86,7 +92,7 @@ for (const kind of ["standard", "quick"] as const) {
         };
         await render();
         if (kind === "standard") await act(async () => document.querySelector<HTMLAnchorElement>("#togglePostFormLink a")!.click());
-        const fields = { sub: "My subject", com: "Keep this draft", name: "Test", img: "https://example.com/a.png", email: "sage" };
+        const fields = { sub: "My subject", com: "Keep this draft", name: "Test", email: "sage" };
         for (const [name, value] of Object.entries(fields)) {
             const input = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`)!;
             const prototype = input.tagName === "TEXTAREA" ? dom.window.HTMLTextAreaElement.prototype : dom.window.HTMLInputElement.prototype;
@@ -95,6 +101,12 @@ for (const kind of ["standard", "quick"] as const) {
                 input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
             });
         }
+        const img = "https://iqlabs.dev/?menu=codein&post=" + "2".repeat(88);
+        await act(async () => [...document.querySelectorAll('button')].find(b => b.textContent === 'Inscribe attachment')!.click());
+        await act(async () => window.dispatchEvent(new dom.window.MessageEvent('message', {
+            origin: 'https://iqlabs.dev', source: popup.window as unknown as Window,
+            data: { type: 'iq:attachment-complete', network: 'solana', signature: '2'.repeat(88), requestId: new URL(opened).searchParams.get('attachmentRequest') },
+        })));
         const submit = () => document.querySelector("form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
         await act(async () => { submit(); submit(); });
         assert.equal(calls, 1);
@@ -113,9 +125,10 @@ for (const kind of ["standard", "quick"] as const) {
         await render();
         await act(async () => { submit(); });
         assert.equal(calls, 2);
-        assert.deepEqual(submitted, { sub: fields.sub, com: fields.com, name: fields.name, img: fields.img, options: fields.email });
+        assert.deepEqual(submitted, { sub: fields.sub, com: fields.com, name: fields.name, img, options: fields.email });
         await act(async () => resolve());
         assert.equal(document.querySelector<HTMLTextAreaElement>("textarea")!.value, "");
+        assert.ok(!document.body.textContent?.includes("Attachment added."));
         assert.equal(closes, kind === "quick" ? 1 : 0);
     });
 }
