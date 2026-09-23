@@ -1,0 +1,92 @@
+{
+  "scope": "Actual components with labelled synthetic local reads; no signatures or mainnet writes",
+  "home": [
+    {
+      "scenario": "slow",
+      "readsPerVersion": [
+        [
+          "fast",
+          "slow"
+        ],
+        [
+          "fast",
+          "slow"
+        ]
+      ],
+      "errors": []
+    },
+    {
+      "scenario": "partial",
+      "readsPerVersion": [
+        [
+          "fast",
+          "slow"
+        ],
+        [
+          "fast",
+          "slow"
+        ]
+      ],
+      "errors": []
+    },
+    {
+      "scenario": "outage",
+      "readsPerVersion": [
+        [
+          "fast",
+          "slow"
+        ],
+        [
+          "fast",
+          "slow"
+        ]
+      ],
+      "errors": []
+    }
+  ],
+  "media": [
+    {
+      "network": "solana",
+      "playback": [
+        {
+          "duration": 2,
+          "currentTime": 0.469587,
+          "error": null
+        },
+        {
+          "duration": 1,
+          "currentTime": 0.501346,
+          "error": null
+        }
+      ],
+      "uploader": "https://iqlabs.dev/?menu=codein",
+      "formAudioPreview": true,
+      "wallet": "simulated",
+      "signed": false
+    },
+    {
+      "network": "robinhood",
+      "playback": [
+        {
+          "duration": 2,
+          "currentTime": 0.465111,
+          "error": null
+        },
+        {
+          "duration": 1,
+          "currentTime": 0.500621,
+          "error": null
+        }
+      ],
+      "uploader": "https://iqlabs.dev/?menu=codein",
+      "formAudioPreview": true,
+      "wallet": "simulated",
+      "signed": false
+    }
+  ],
+  "viewer": {
+    "actualViewer": true,
+    "syntheticRecord": true,
+    "metadataAsText": true
+  }
+}

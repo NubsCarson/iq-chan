@@ -1,0 +1,7 @@
+{
+  "scope": "Exact PR #30 checkout on localhost, public live read endpoints, no wallet or signatures",
+  "httpStatus": 200,
+  "threadsVisible": 2,
+  "busy": "true",
+  "status": []
+}

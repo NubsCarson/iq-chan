@@ -1,0 +1,85 @@
+{
+  "scope": "Recorded local test results, not a production test or cost quote. Generated wallets and synthetic content; no mainnet writes.",
+  "sdk": {
+    "commit": "037e2e344b288723554a7ab50f286631ec39c512",
+    "v1SuccessfulReceipts": 51,
+    "legacySuccessfulReceipts": 87,
+    "scenarios": [
+      {
+        "scenario": "resume-after-first-chunk",
+        "writes": 10
+      },
+      {
+        "scenario": "resume-finalization-only",
+        "writes": 1
+      },
+      {
+        "scenario": "different-content-new-session",
+        "writes": 11
+      },
+      {
+        "scenario": "writeRow-resume",
+        "writes": 12
+      }
+    ],
+    "confirmationResumeUnitTests": 12
+  },
+  "gateway": {
+    "featureCommit": "6d589b86756a802e04499b7ba59b0b4dfe20cf52",
+    "dependencyCommit": "4a309fb574f54849bb5e0755fa6a922709025e46",
+    "unitTests": 142,
+    "withCachePr31": 145,
+    "localEvmSuccessfulReceipts": 12,
+    "mediaBytes": 32044,
+    "exactReadback": true,
+    "rangeStatus": 206,
+    "invalidRangeStatus": 416,
+    "unsafeStatus": 415
+  },
+  "iq6900": {
+    "commit": "c68c95303d1ebcd8a168fa76ef08f04dbd8337af",
+    "unitTests": 18,
+    "successfulReceipts": 37,
+    "mediaBytes": 32044,
+    "bodyBytes": 45600,
+    "retries": 1,
+    "exactReadback": true,
+    "burnerLamportsAfterSweep": 0,
+    "interruptionRequiresUnpublishedSdkPatch": true
+  },
+  "dependencies": [
+    {
+      "repo": "frontend",
+      "distinctAdvisoriesBefore": 16,
+      "distinctAdvisoriesAfter": 7,
+      "newAdvisories": 0,
+      "npmAffectedPackageCounts": {
+        "before": 39,
+        "after": 23
+      }
+    },
+    {
+      "repo": "gateway",
+      "distinctAdvisoriesBefore": 8,
+      "distinctAdvisoriesAfter": 5,
+      "newAdvisories": 0,
+      "npmAffectedPackageCounts": {
+        "before": 14,
+        "after": 20
+      }
+    }
+  ],
+  "walletconnect": {
+    "qrGenerated": true,
+    "browserErrors": 0,
+    "physicalWalletPaired": false,
+    "browserTransactionSigned": false
+  },
+  "limits": [
+    "Physical-wallet pairing and browser-signed posting not verified.",
+    "Production gateway rollout and RPC quotas not verified.",
+    "Remaining dependency advisories are documented, not cleared.",
+    "Frontend media size limit is checked after download.",
+    "Local genesis route harness is not proof of production startup."
+  ]
+}
