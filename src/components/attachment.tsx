@@ -5,6 +5,7 @@ import { ALLWEBS_PAGE, ALLWEBS_MEDIA, inscriptionMediaPath } from "../lib/attach
 import { safePostUrl } from "../lib/format";
 import { gwFetch } from "../lib/gateway";
 import { resolveNetwork } from "../lib/chains/resolve";
+import { readResponseBytes } from "../lib/read-response";
 
 /** The on-chain img field also accepts direct video URLs; approved provider pages are resolved by the server. */
 export default function Attachment({ url, name, isOp }: { url: string; name: string; isOp?: boolean }) {
@@ -24,11 +25,12 @@ export default function Attachment({ url, name, isOp }: { url: string; name: str
         const timeout = setTimeout(() => { setMedia({path: inscription, error: true}); controller.abort(); }, 15000);
         gwFetch(inscription, {signal: controller.signal})
             .then(async response => {
-                if (!response.ok) throw new Error("Media unavailable");
+                if (!response.ok) { await response.body?.cancel(); throw new Error("Media unavailable"); }
                 const mime = response.headers.get("content-type")?.split(";")[0] || "";
-                if (!/^(image\/(png|jpeg|gif|webp|avif)|audio\/(mpeg|mp3|wav|x-wav|ogg|mp4|aac|flac)|video\/(mp4|webm|ogg))$/.test(mime)) throw new Error("Unsupported media");
-                const blob = await response.blob();
-                if (blob.size > 6 * 1024 * 1024 || controller.signal.aborted) throw new Error("Media unavailable");
+                if (!/^(image\/(png|jpeg|gif|webp|avif)|audio\/(mpeg|mp3|wav|x-wav|ogg|mp4|aac|flac)|video\/(mp4|webm|ogg))$/.test(mime)) { await response.body?.cancel(); throw new Error("Unsupported media"); }
+                const bytes = await readResponseBytes(response, 6 * 1024 * 1024);
+                if (controller.signal.aborted) throw new Error("Media unavailable");
+                const blob = new Blob([bytes], {type: mime});
                 objectUrl = URL.createObjectURL(blob);
                 setMedia({path: inscription, src: objectUrl, mime});
             })
