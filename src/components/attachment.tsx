@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ALLWEBS_PAGE, ALLWEBS_MEDIA, inscriptionMediaPath } from "../lib/attachment";
+import { ALLWEBS_PAGE, ALLWEBS_MEDIA, inscriptionMediaPath, parseInscription, inscriptionSiteUrl } from "../lib/attachment";
 import { safePostUrl } from "../lib/format";
 import { gwFetch } from "../lib/gateway";
 import { resolveNetwork } from "../lib/chains/resolve";
@@ -54,20 +54,23 @@ export default function Attachment({ url, name, isOp }: { url: string; name: str
     if (inscription && !loaded?.src) return <span role="status">{loaded?.error ? "Inscribed media unavailable." : "Loading inscribed media…"}</span>;
     if (!safeUrl && !inscription) return null;
     if (providerPage && !resolved) return null;
+    const reference = parseInscription(url, resolveNetwork());
+    const recordUrl = reference && inscriptionSiteUrl(reference.network, reference.id);
+    const badge = recordUrl && <a className="inscriptionBadge" href={recordUrl} target="_blank" rel="noopener noreferrer" title="This media is inscribed on the blockchain. View it on IQ.">On-chain · View on IQ</a>;
     const source = (inscription ? loaded?.src : resolved || safeUrl)!;
     const path = new URL(source).pathname;
     const video = inscription ? loaded?.mime?.startsWith("video/") : /\.(mp4|webm|mov|m4v|ogv)$/i.test(path);
     const audio = inscription ? loaded?.mime?.startsWith("audio/") : /\.(mp3|wav|ogg|m4a|aac|flac|opus)$/i.test(path);
     if (placeholderFailed || (failed && (video || audio))) return inscription ? <span role="status">Inscribed media unavailable.</span> : null;
-    if (audio) return <audio className="attachmentAudio" src={source} controls preload="none" aria-label={name} onError={() => setFailed(true)} />;
-    if (video) return <div className="attachmentVideo">
+    if (audio) return <div className={inscription ? "inscriptionMedia" : undefined}>{badge}<audio className="attachmentAudio" src={source} controls preload="none" aria-label={name} onError={() => setFailed(true)} /></div>;
+    if (video) return <div className={inscription ? "attachmentVideo inscriptionMedia" : "attachmentVideo"}>{badge}
         <video src={source} controls playsInline preload="metadata" aria-label={name} onError={() => setFailed(true)} />
     </div>;
-    return <a className={`fileThumb${expanded ? " fileThumbExpanded" : ""}`} href={safeUrl || source}
+    return <div className={inscription ? "inscriptionMedia" : undefined}>{badge}<a className={`fileThumb${expanded ? " fileThumbExpanded" : ""}`} href={safeUrl || source}
         onClick={(event) => { if (!failed) { event.preventDefault(); setExpanded(value => !value); } }}
         aria-label={failed ? name : `${expanded ? "Collapse" : "Expand"} ${name}`}>
         <img src={failed ? "/404.webp" : source} alt={failed ? "Image unavailable" : name} loading="lazy" onError={() => failed ? setPlaceholderFailed(true) : setFailed(true)}
             style={expanded ? { maxWidth: "100%", maxHeight: "none" } : { maxWidth: isOp ? 250 : 125, maxHeight: isOp ? 250 : 125 }} />
         <div className="mFileInfo mobile">{expanded && <div className="mFileName">{name}</div>}</div>
-    </a>;
+    </a></div>;
 }

@@ -4,7 +4,7 @@ The shared AttachmentField is used by both PostForm and QuickReply. Click
 **Inscribe attachment**, choose media in IQ Labs' existing Solana uploader, and
 complete its normal wallet/funding flow. After a successful inscription the
 reference returns to the post automatically. Review and submit the post separately.
-New attachments are IQ inscriptions only: the forms have no URL input.
+New attachments accept a transaction ID for the board’s chain, or a new inscription from its matching uploader. Solana uses Code In; Robinhood uses Hood In. Arbitrary URL input is rejected. Both paths store the canonical transaction ID, not an inscription-site or gateway URL.
 Completed inscriptions show a preview with Replace and Remove controls.
 Existing posts with external attachments remain readable. If automatic return
 fails, keep the draft and return to the uploader to retry the attachment handoff.
@@ -12,8 +12,7 @@ fails, keep the draft and return to the uploader to retry the attachment handoff
 This does not copy the uploader, SDK writer, funding or refund logic into the
 frontend. The popup carries out those operations on IQ Labs. Only the public
 signature, network and random request ID return to the posting app; draft text,
-wallet keys and signing material are not exchanged. HoodChan still posts on
-Robinhood; its attachment can reference a Solana inscription.
+wallet keys and signing material are not exchanged. HoodChan posts and new attachments use Robinhood. Existing posts with older Solana inscription links remain readable.
 
 ## Coordinated rollout
 
@@ -26,7 +25,7 @@ Nubs or Zo. Do not merge or deploy yet.**
 The configured uploader defaults to `https://iqlabs.dev/`. Set the build-time
 `NEXT_PUBLIC_INSCRIPTION_URL` for a local/staging uploader. The receiver validates
 the exact configured origin, the popup Window and a per-upload UUID. A completed
-Solana signature is validated through the existing inscription URL parser.
+transaction ID is validated through the shared inscription parser.
 Cancellation, removing the attachment, unmounting or starting a new request removes
 the old listener. Failure/cancellation does not close an upload still in progress.
 
@@ -40,7 +39,7 @@ preservation are required; a COOP policy that severs the opener prevents return.
 
 Open `?menu=codein&attachmentOrigin=<origin>&attachmentRequest=<UUIDv4>`.
 The uploader sends `iq:attachment-ready`, then `iq:attachment-complete` containing
-`requestId`, `network: "solana"`, and `signature`. The frontend acknowledges with
+`requestId`, `network` (`solana` or `robinhood`), and `signature`. The frontend acknowledges with
 `iq:attachment-accepted` and `requestId`. Every message uses an exact target origin,
 never `*`. A rejected or incomplete inscription never sends a completion.
 

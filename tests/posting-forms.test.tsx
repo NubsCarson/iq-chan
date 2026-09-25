@@ -9,7 +9,7 @@ import QuickReply from "../src/components/quick-reply";
 for (const kind of ["standard", "quick"] as const) {
     for (const finish of ["complete", "cancel", "blocked"] as const) {
         test(`${kind} waits for its attachment before posting (${finish})`, async t => {
-            const dom = new JSDOM('<div id="root"></div>', { url: "https://hoodchan.xyz/" });
+            const dom = new JSDOM('<div id="root"></div>', { url: "https://blockchan.sol.site/" });
             const popup = new JSDOM('', { url: "https://iqlabs.dev/" });
             Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
             const { createRoot } = await import("react-dom/client");
@@ -56,14 +56,14 @@ for (const kind of ["standard", "quick"] as const) {
             await submit();
             assert.equal(posts.length, 1);
             assert.equal(posts[0].com, "draft stays here");
-            assert.equal(posts[0].img, finish === "complete" ? "https://iqlabs.dev/?menu=codein&post=" + "2".repeat(88) : undefined);
+            assert.equal(posts[0].img, finish === "complete" ? "2".repeat(88) : undefined);
         });
     }
 }
 
 for (const kind of ["standard", "quick"] as const) {
     test(`${kind} posting preserves drafts on failure, prevents duplicate submits, and clears only on success`, async (t) => {
-        const dom = new JSDOM('<div id="root"></div>', { url: "https://hoodchan.xyz/" });
+        const dom = new JSDOM('<div id="root"></div>', { url: "https://blockchan.sol.site/" });
         Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
         const { createRoot } = await import("react-dom/client");
         const root = createRoot(document.getElementById("root")!);
@@ -101,7 +101,7 @@ for (const kind of ["standard", "quick"] as const) {
                 input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
             });
         }
-        const img = "https://iqlabs.dev/?menu=codein&post=" + "2".repeat(88);
+        const img = "2".repeat(88);
         await act(async () => [...document.querySelectorAll('button')].find(b => b.textContent === 'Inscribe attachment')!.click());
         await act(async () => window.dispatchEvent(new dom.window.MessageEvent('message', {
             origin: 'https://iqlabs.dev', source: popup.window as unknown as Window,
@@ -134,7 +134,7 @@ for (const kind of ["standard", "quick"] as const) {
 }
 
 test("quick reply opens disconnected and connects without submitting", async () => {
-    const dom = new JSDOM('<div id="root"></div>', { url: "https://hoodchan.xyz/" });
+    const dom = new JSDOM('<div id="root"></div>', { url: "https://blockchan.sol.site/" });
     Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
     const { createRoot } = await import("react-dom/client");
     const root = createRoot(document.getElementById("root")!);
@@ -156,3 +156,41 @@ test("quick reply opens disconnected and connects without submitting", async () 
         dom.window.close();
     }
 });
+
+for (const kind of ['standard', 'quick'] as const) {
+    test(`${kind} blocks invalid IDs and recovers through paste without an upload`, async () => {
+        const dom = new JSDOM('<div id="root"></div>', {url:'https://blockchan.sol.site/'});
+        Object.assign(globalThis, {window:dom.window,document:dom.window.document,IS_REACT_ACT_ENVIRONMENT:true});
+        const {createRoot}=await import('react-dom/client');
+        const root=createRoot(document.getElementById('root')!);
+        const posts: Array<{img?:string}> = [];
+        try {
+            const props={loading:false,onSubmit:async(data:{img?:string})=>{posts.push(data);}};
+            await act(async()=>root.render(<ChainWalletContext.Provider value={{address:'wallet',connecting:false,family:'svm',connect(){},disconnect(){}}}>
+                {kind==='standard'?<PostForm {...props} mode="thread"/>:<QuickReply {...props} threadSig="op" onClose={()=>{}}/>}
+            </ChainWalletContext.Provider>));
+            const comment=document.querySelector('textarea')!;
+            await act(async()=>{
+                Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype,'value')!.set!.call(comment,'preserved draft');
+                comment.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+            });
+            const input=document.querySelector<HTMLInputElement>('[aria-label="Inscription transaction ID"]')!;
+            const submit=()=>document.querySelector('form')!.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));
+            for(const bad of ['not-a-tx','https://example.com/image.png','0x'+'a'.repeat(64)]) {
+                await act(async()=>{
+                    Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value')!.set!.call(input,bad);
+                    input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+                });
+                assert.equal(input.getAttribute('aria-invalid'),'true');
+                await act(async()=>{submit();});
+                assert.equal(posts.length,0);
+            }
+            await act(async()=>{
+                Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value')!.set!.call(input,'2'.repeat(88));
+                input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+            });
+            await act(async()=>{submit();});
+            assert.equal(posts.length,1);assert.equal(posts[0].img,'2'.repeat(88));
+        } finally {await act(async()=>root.unmount());dom.window.close();}
+    });
+}
