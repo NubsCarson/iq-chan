@@ -35,7 +35,7 @@ Open `http://localhost:3000`. Connect your wallet and start posting.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `NEXT_PUBLIC_RPC_ENDPOINT` | No | `https://api.mainnet-beta.solana.com` | Solana RPC for wallet operations and writes; override with your own endpoint. No automatic RPC failover |
+| `NEXT_PUBLIC_RPC_ENDPOINT` | No | `https://solana-rpc.publicnode.com` | Solana RPC for wallet operations and writes; override with your own endpoint. No automatic RPC failover |
 
 Gateway URLs are set in `src/lib/config.ts` and can be overridden at runtime in your browser console:
 
