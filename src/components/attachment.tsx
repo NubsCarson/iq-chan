@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ALLWEBS_PAGE, ALLWEBS_MEDIA, inscriptionMediaPath, parseInscription, inscriptionSiteUrl } from "../lib/attachment";
 import { safePostUrl } from "../lib/format";
 import { gwFetch } from "../lib/gateway";
@@ -14,6 +14,7 @@ export default function Attachment({ url, name, isOp }: { url: string; name: str
     const [expanded, setExpanded] = useState(false);
     const safeUrl = safePostUrl(url);
     const inscription = inscriptionMediaPath(url, resolveNetwork());
+    const preview = useRef<HTMLSpanElement>(null);
     const [media, setMedia] = useState<{path: string; src?: string; mime?: string; error?: boolean} | null>(null);
     const [resolved, setResolved] = useState<string | null>(null);
     const providerPage = !!safeUrl && ALLWEBS_PAGE.test(safeUrl);
@@ -22,21 +23,34 @@ export default function Attachment({ url, name, isOp }: { url: string; name: str
         if (!inscription) return;
         const controller = new AbortController();
         let objectUrl: string | undefined;
-        const timeout = setTimeout(() => { setMedia({path: inscription, error: true}); controller.abort(); }, 15000);
-        gwFetch(inscription, {signal: controller.signal})
-            .then(async response => {
-                if (!response.ok) { await response.body?.cancel(); throw new Error("Media unavailable"); }
-                const mime = response.headers.get("content-type")?.split(";")[0] || "";
-                if (!/^(image\/(png|jpeg|gif|webp|avif)|audio\/(mpeg|mp3|wav|x-wav|ogg|mp4|aac|flac)|video\/(mp4|webm|ogg))$/.test(mime)) { await response.body?.cancel(); throw new Error("Unsupported media"); }
-                const bytes = await readResponseBytes(response, 6 * 1024 * 1024);
-                if (controller.signal.aborted) throw new Error("Media unavailable");
-                const blob = new Blob([bytes], {type: mime});
-                objectUrl = URL.createObjectURL(blob);
-                setMedia({path: inscription, src: objectUrl, mime});
-            })
-            .catch(() => {if (!controller.signal.aborted) setMedia({path: inscription, error: true});})
-            .finally(() => clearTimeout(timeout));
-        return () => { clearTimeout(timeout); controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        let started = false;
+        const load = () => {
+            if (started || controller.signal.aborted) return;
+            started = true;
+            observer?.disconnect();
+            timeout = setTimeout(() => { setMedia({path: inscription, error: true}); controller.abort(); }, 15000);
+            gwFetch(inscription, {signal: controller.signal})
+                .then(async response => {
+                    if (controller.signal.aborted || !response.ok) { await response.body?.cancel(); throw new Error("Media unavailable"); }
+                    const mime = response.headers.get("content-type")?.split(";")[0] || "";
+                    if (!/^(image\/(png|jpeg|gif|webp|avif)|audio\/(mpeg|mp3|wav|x-wav|ogg|mp4|aac|flac)|video\/(mp4|webm|ogg))$/.test(mime)) { await response.body?.cancel(); throw new Error("Unsupported media"); }
+                    const bytes = await readResponseBytes(response, 6 * 1024 * 1024);
+                    if (controller.signal.aborted) throw new Error("Media unavailable");
+                    const blob = new Blob([bytes], {type: mime});
+                    objectUrl = URL.createObjectURL(blob);
+                    setMedia({path: inscription, src: objectUrl, mime});
+                })
+                .catch(() => {if (!controller.signal.aborted) setMedia({path: inscription, error: true});})
+                .finally(() => clearTimeout(timeout));
+        };
+        const observer = typeof window.IntersectionObserver === "function" && preview.current
+            ? new window.IntersectionObserver(entries => {
+                if (entries.some(entry => entry.isIntersecting)) load();
+            }, {rootMargin: "200px"}) : null;
+        if (observer) observer.observe(preview.current!);
+        else load();
+        return () => { observer?.disconnect(); clearTimeout(timeout); controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
     }, [inscription]);
     useEffect(() => {
         if (!providerPage || !safeUrl) return;
@@ -51,7 +65,7 @@ export default function Attachment({ url, name, isOp }: { url: string; name: str
         return () => { clearTimeout(timer); controller.abort(); };
     }, [providerPage, safeUrl]);
     const loaded = media?.path === inscription ? media : null;
-    if (inscription && !loaded?.src) return <span role="status">{loaded?.error ? "Inscribed media unavailable." : "Loading inscribed media…"}</span>;
+    if (inscription && !loaded?.src) return <span ref={preview} role="status">{loaded?.error ? "Inscribed media unavailable." : "Loading inscribed media…"}</span>;
     if (!safeUrl && !inscription) return null;
     if (providerPage && !resolved) return null;
     const reference = parseInscription(url, resolveNetwork());

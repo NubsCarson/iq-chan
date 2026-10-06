@@ -20,14 +20,17 @@ return protocol are described in [automatic attachments](automatic-attachments.m
 This reuses the existing uploader and writer, leaves the post's chain unchanged,
 and makes no browser RPC calls to read media.
 
-The shared Attachment component calls the existing gateway transport at
+The shared Attachment component waits until a preview is within 200 pixels of
+the viewport, then calls the existing gateway transport once at
 `/media/:id?network=:network`, checks its media type and size, and uses native
 image/audio/video elements. Ordinary media URLs continue to work. HTML, SVG,
 unknown share sites and embedded remote media URLs are not resolved as inscriptions.
 There is a 15-second request deadline and a 6 MiB maximum accepted decoded size.
-The browser downloads the response before checking its size and starting playback;
-this is not a streaming player or a bounded streaming download. The gateway
-rejects oversized encoded payloads separately.
+The browser checks the downloaded byte count as each chunk arrives and cancels
+the response once it exceeds 6 MiB. Accepted content is buffered before playback;
+this is not a streaming player. Removing the preview aborts an active request
+and releases its object URL. Browsers without IntersectionObserver load the
+preview immediately. The gateway rejects oversized encoded payloads separately.
 
 The server's `media-src` policy includes `blob:` for attachment object URLs.
 Static exports do not emit Next response headers: configure any hosting CSP
@@ -63,5 +66,5 @@ official Ethereum SDK 0.4.0. These checks do not prove live RPC availability,
 deployed gateway support or browser-signed posting. No remote changes or mainnet
 writes were made.
 
-This documentation correction changes no runtime code or dependencies. It does
-not represent a new test run, deployment or physical-wallet validation.
+These historical receipts do not establish deployment or physical-wallet
+validation of newer changes.

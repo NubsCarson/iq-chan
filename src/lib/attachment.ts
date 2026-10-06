@@ -1,5 +1,6 @@
 import { NETWORKS } from "./chains/networks";
 import type { NetworkDescriptor } from "./chains/types";
+import { bs58 } from "@coral-xyz/anchor/dist/esm/utils/bytes";
 
 // Shared provider restrictions for browser requests and server extraction.
 export const ALLWEBS_PAGE = /^https:\/\/allwebs\.ru\/video\/[A-Za-z0-9.]+$/;
@@ -27,7 +28,7 @@ export function parseInscription(value: string, network: NetworkDescriptor): { i
             selected = explorer;
         }
     }
-    if (/^[1-9A-HJ-NP-Za-km-z]{80,88}$/.test(id)) return {id, network: NETWORKS.solana};
+    if (/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(id) && bs58.decode(id).length === 64) return {id, network: NETWORKS.solana};
     if (/^0x[0-9a-fA-F]{64}$/.test(id) && selected.family === "evm") {
         return {id: id.toLowerCase(), network: selected};
     }

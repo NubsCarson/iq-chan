@@ -4,6 +4,21 @@ import { NETWORKS } from "../src/lib/chains/networks";
 const signature = "2".repeat(88);
 const hash = "0x" + "a".repeat(64);
 
+test("Solana references reject Base58 values that do not decode to 64 bytes", () => {
+    for (const id of ['2'.repeat(80), '1'.repeat(80), '1'.repeat(63), '1'.repeat(65), '0'.repeat(88)]) {
+        expect(inscriptionMediaPath(id, NETWORKS.solana)).toBeNull();
+        expect(inscriptionMediaPath(`https://iqlabs.dev/?menu=codein&post=${id}`, NETWORKS.solana)).toBeNull();
+        expect(inscriptionMediaPath(`https://solscan.io/tx/${id}`, NETWORKS.solana)).toBeNull();
+    }
+});
+
+test("64-byte Solana references include Base58 encodings with leading zero bytes", () => {
+    for (const id of [signature, '1'.repeat(64), '1'.repeat(63) + '2']) {
+        expect(inscriptionMediaPath(id, NETWORKS.solana)).toBe(`/media/${id}?network=solana`);
+        expect(inscriptionMediaPath(`https://iqlabs.dev/?menu=codein&post=${id}`, NETWORKS.robinhood)).toBe(`/media/${id}?network=solana`);
+    }
+});
+
 test("Solana share links and bare signatures resolve independently of the current board", () => {
     expect(inscriptionMediaPath(signature, NETWORKS.robinhood)).toBe(`/media/${signature}?network=solana`);
     expect(inscriptionMediaPath(`https://iqlabs.dev/?menu=codein&post=${signature}`, NETWORKS.solana)).toBe(`/media/${signature}?network=solana`);
